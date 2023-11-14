@@ -29,8 +29,8 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="25"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="35"/>
+            <RowDefinition Height="35"/>
             <RowDefinition Height="20"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -46,34 +46,30 @@
             Grid.Column="2"
             x:Name="UsernameTextBox"
             materialDesign:HintAssist.Hint="Username"
-            Style="{StaticResource MaterialDesignOutlinedTextBox}">
-            <TextBox.Text>
-                <Binding
-                  Path="Username"
-                  UpdateSourceTrigger="PropertyChanged">
-                    <Binding.ValidationRules>
-                        <domain:NotEmptyValidationRule ValidatesOnTargetUpdated="False"/>
-                    </Binding.ValidationRules>
-                </Binding>
-            </TextBox.Text>
-        </TextBox>
-        <TextBox
-            VerticalAlignment="Center"
+            Style="{StaticResource MaterialDesignOutlinedTextBox}"
+            Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+        <PasswordBox
+            x:Name="PasswordTextBox"
             Grid.Row="4"
             Grid.Column="2"
-            x:Name="PasswordTextBox"
+            VerticalAlignment="Center"
             materialDesign:HintAssist.Hint="Password"
-            Style="{StaticResource MaterialDesignOutlinedTextBox}">
-            <TextBox.Text>
-                <Binding
-                  Path="Password"
-                  UpdateSourceTrigger="PropertyChanged">
-                    <Binding.ValidationRules>
-                        <domain:NotEmptyValidationRule ValidatesOnTargetUpdated="False"/>
-                    </Binding.ValidationRules>
+            materialDesign:TextFieldAssist.HasClearButton="True"
+            Style="{StaticResource MaterialDesignOutlinedRevealPasswordBox}">
+            <materialDesign:PasswordBoxAssist.Password>
+                <Binding 
+                    Path="Password" 
+                    UpdateSourceTrigger="PropertyChanged">
                 </Binding>
-            </TextBox.Text>
-        </TextBox>
+            </materialDesign:PasswordBoxAssist.Password>
+        </PasswordBox>
+        <TextBlock
+            Grid.Row="5"
+            Grid.Column="2"
+            Margin="0,5,10,0"
+            TextWrapping="Wrap"
+            Foreground="{Binding StatusMessageColor, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding StatusMessage, UpdateSourceTrigger=PropertyChanged}"/>
         <Grid
             Grid.Row="6"
             Grid.Column="2"
@@ -102,7 +98,10 @@
                 FontSize="14"
                 HorizontalAlignment="Center"
                 Content="Login"
-                Command="{Binding LoginCommand}"/>
+                materialDesign:ButtonProgressAssist.IsIndeterminate="{Binding IsLogging}"
+                materialDesign:ButtonProgressAssist.IsIndicatorVisible="True"
+                Command="{Binding LoginCommand}"
+                CommandParameter="{Binding ElementName=LoginWindow, Mode=OneWay}"/>
         </Grid>
     </Grid>
 </Window>
