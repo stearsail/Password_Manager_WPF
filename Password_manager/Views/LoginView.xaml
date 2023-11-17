@@ -68,6 +68,7 @@
             Grid.Column="2"
             Margin="0,5,10,0"
             TextWrapping="Wrap"
+            FontWeight="Light"
             Foreground="{Binding StatusMessageColor, UpdateSourceTrigger=PropertyChanged}"
             Text="{Binding StatusMessage, UpdateSourceTrigger=PropertyChanged}"/>
         <Grid

@@ -5,14 +5,14 @@
 namespace Password_manager.Migrations
 {
     /// <inheritdoc />
-    public partial class PasswordSalt : Migration
+    public partial class AccountSaltAdded : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "PasswordSalt",
-                table: "MasterAccounts",
+                name: "AccountSalt",
+                table: "Accounts",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "");
@@ -22,8 +22,8 @@ namespace Password_manager.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "PasswordSalt",
-                table: "MasterAccounts");
+                name: "AccountSalt",
+                table: "Accounts");
         }
     }
 }

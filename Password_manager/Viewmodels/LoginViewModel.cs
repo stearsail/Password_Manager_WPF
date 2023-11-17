@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Password_manager.Base;
+using Password_manager.Models;
 using Password_manager.Views;
 using System;
 using System.Collections.Generic;
@@ -111,16 +112,16 @@ namespace Password_manager.Viewmodels
                 }
                 else
                 {
-                    var username = await databaseContext.MasterAccounts.FirstOrDefaultAsync(u => u.Username == Username);
-                    string passwordHash = (username?.PasswordHash).ToString();
-                    string passwordSalt = (username?.PasswordSalt).ToString();
+                    MasterAccount user = databaseContext.GetMasterAccountByUsername(Username);
+                    string passwordHash = (user?.PasswordHash).ToString();
+                    string passwordSalt = (user?.PasswordSalt).ToString();
                     if (!VerifyPassword(Password, passwordHash, passwordSalt))
                     {
                         SetStatusMessage(false, "Password is incorrect.");
                     }
                     else
                     {
-                        OpenMainWindow(param);
+                        OpenMainWindow(param, user);
                     }
                 }
             });
@@ -158,11 +159,11 @@ namespace Password_manager.Viewmodels
             });
         }
 
-        private void OpenMainWindow(object param)
+        private void OpenMainWindow(object param, MasterAccount user)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                windowService.ShowWindow(new MainView(), new MainViewModel());
+                windowService.ShowWindow(new MainView(), new MainViewModel(user, Password));
                 var window = param as LoginView;
                 windowService.CloseWindow(window);
             });

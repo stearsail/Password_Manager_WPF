@@ -28,5 +28,10 @@ namespace Password_manager
                 .HasIndex(m => m.Email)
                 .IsUnique();
         }
+
+        public MasterAccount GetMasterAccountByUsername(string username)
+        {
+            return MasterAccounts.Include(macc => macc.Accounts).ToList().FirstOrDefault(macc => macc.Username == username);
+        }
     }
 }
