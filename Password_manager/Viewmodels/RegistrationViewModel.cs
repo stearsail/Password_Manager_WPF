@@ -122,7 +122,7 @@ namespace Password_manager.Viewmodels
                 {
                     MasterAccount newUser = new MasterAccount
                     {
-                        Username = Username,
+                        Username = Username.ToLower(),
                         PasswordHash = passwordHash,
                         PasswordSalt = salt,
                         Email = Email,

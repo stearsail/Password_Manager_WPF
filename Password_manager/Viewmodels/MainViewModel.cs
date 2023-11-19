@@ -11,6 +11,9 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography.Xml;
 using System.Windows.Media;
+using MaterialDesignColors.Recommended;
+using MaterialDesignThemes.Wpf;
+using Password_manager.Views;
 
 namespace Password_manager.Viewmodels
 {
@@ -26,6 +29,9 @@ namespace Password_manager.Viewmodels
 
         private ICommand addNewAccountCommand;
         private ICommand copyTextCommand;
+        private ICommand signOutCommand;
+
+        private WindowService windowService = new WindowService();
 
         public ICommand CopyTextCommand
         {
@@ -48,6 +54,18 @@ namespace Password_manager.Viewmodels
                     addNewAccountCommand = new RelayCommand(_ => AddNewAccount(), _=> AllFieldsCompleted());
                 }
                 return addNewAccountCommand;
+            }
+        }
+
+        public ICommand SignOutCommand
+        {
+            get
+            {
+                if(signOutCommand == null)
+                {
+                    signOutCommand = new RelayCommand(param => SignOut(param));
+                }
+                return signOutCommand;
             }
         }
 
@@ -110,26 +128,40 @@ namespace Password_manager.Viewmodels
                 OnPropertyChanged();
             }
         }
+
+        public string MasterPassword
+        {
+            get => masterPassword;
+            set
+            {
+                masterPassword = value;
+                OnPropertyChanged();
+            }
+        }
+
         public MainViewModel(MasterAccount user, string masterPassword)
         {
             CurrentUser = user;
-            DecryptAllPasswords(masterPassword);
+            MasterPassword = masterPassword;
+            DecryptAllPasswords(MasterPassword);
         }
 
         public MainViewModel()
         {
-#if DEBUG
-            DatabaseContext dbcontext = new DatabaseContext();
-            CurrentUser = dbcontext.GetMasterAccountByUsername("step");
-            masterPassword = "Numbthumb7!";
-            DecryptAllPasswords(masterPassword);
-#endif
+//#if DEBUG
+//            DatabaseContext dbcontext = new DatabaseContext();
+//            CurrentUser = dbcontext.GetMasterAccountByUsername("step");
+//            masterPassword = "Numbthumb7!";
+//            DecryptAllPasswords(masterPassword);
+//#endif
         }
 
         public void AddNewAccount()
         {
+
+            string username = NewUsername.ToLower();
             string generatedSalt = EncryptionService.GenerateSalt();
-            string password = EncryptionService.Encrypt(NewPassword, masterPassword, generatedSalt);
+            string password = EncryptionService.Encrypt(NewPassword, MasterPassword, generatedSalt);
 
             try
             {
@@ -137,7 +169,7 @@ namespace Password_manager.Viewmodels
                 {
                     Account newUser = new Account
                     {
-                        Username = NewUsername,
+                        Username = username,
                         EncryptedPassword = password,
                         AccountSalt = generatedSalt,
                         Website = NewWebsite,
@@ -147,7 +179,7 @@ namespace Password_manager.Viewmodels
                     dbContext.SaveChanges();
                 }
                 ResetProperties();
-                SetStatusMessage(true, "Your account has been added succesfully");
+                DialogHost.CloseDialogCommand.Execute(null, null);
             }
             catch (DbUpdateException ex)
             {
@@ -180,6 +212,13 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        private void SignOut(object param)
+        {
+            windowService.ShowWindow(new LoginView(), new LoginViewModel());
+            var window = param as MainView;
+            windowService.CloseWindow(window);
+        }
+
         private bool AllFieldsCompleted()
         {
             return !string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(NewWebsite);
@@ -203,12 +242,6 @@ namespace Password_manager.Viewmodels
             {
                 acc.DecryptedPassword = EncryptionService.Decrypt(acc.EncryptedPassword, masterPassword, acc.AccountSalt);
             }
-        }
-
-        private void SetStatusMessage(bool successful, string message)
-        {
-            StatusMessageColor = successful ? new SolidColorBrush(Colors.Green) : new SolidColorBrush(Colors.Red);
-            StatusMessage = message;
         }
 
         public void ResetProperties()
