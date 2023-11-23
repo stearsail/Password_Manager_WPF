@@ -9,7 +9,7 @@ namespace Password_manager.Models
         public string Username { get; set; }
         public string EncryptedPassword { get; set; }
         public string AccountSalt { get; set; }
-        public string Website { get; set; }
+        public string Source { get; set; }
         public int MasterAccountId { get; set; }
         public MasterAccount MasterAccount { get; set; }
         [NotMapped]

@@ -106,13 +106,13 @@ namespace Password_manager.Viewmodels
 
             await Task.Run(async () =>
             {
-                if (!await VerifyUsername(Username))
+                if (!await VerifyUsername(Username.ToLower()))
                 {
                     SetStatusMessage(false, "The username does not exist.");
                 }
                 else
                 {
-                    MasterAccount user = databaseContext.GetMasterAccountByUsername(Username);
+                    MasterAccount user = databaseContext.GetMasterAccountByUsername(Username.ToLower());
                     string passwordHash = (user?.PasswordHash).ToString();
                     string passwordSalt = (user?.PasswordSalt).ToString();
                     if (!VerifyPassword(Password, passwordHash, passwordSalt))

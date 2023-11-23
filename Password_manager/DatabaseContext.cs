@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Password_manager.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,7 +32,13 @@ namespace Password_manager
 
         public MasterAccount GetMasterAccountByUsername(string username)
         {
-            return MasterAccounts.Include(macc => macc.Accounts).ToList().FirstOrDefault(macc => macc.Username == username);
+            var masterAccount =  MasterAccounts.Include(macc => macc.Accounts).ToList().FirstOrDefault(macc => macc.Username == username);
+            if (masterAccount != null && masterAccount.Accounts == null)
+            {
+                masterAccount.Accounts = new ObservableCollection<Account>(Accounts.Where(a => a.MasterAccountId == masterAccount.UserId));
+            }
+            return masterAccount;
+
         }
     }
 }

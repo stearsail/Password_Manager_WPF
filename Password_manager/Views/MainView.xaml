@@ -21,120 +21,196 @@
     <Window.Resources>
         <domain:NonEmptyStringConverter x:Key="NonEmptyStringConverter" />
     </Window.Resources>
-    <materialDesign:DialogHost>
+    <materialDesign:DialogHost IsOpen="{Binding IsDialogOpen}">
         <materialDesign:DialogHost.DialogContent>
-            <Grid
-                Grid.Row="1"
-                Grid.Column="1"
-                Width="300"
-                Height="350">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="10" />
-                    <RowDefinition Height="2*" />
-                    <RowDefinition Height="3*" />
-                    <RowDefinition Height="3*" />
-                    <RowDefinition Height="3*" />
-                    <RowDefinition Height="2*" />
-                    <RowDefinition Height="2*" />
-                    <RowDefinition Height="10" />
-                </Grid.RowDefinitions>
-                <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FontSize="20"
-                    Text="Add an account" />
-                <TextBox
-                    x:Name="WebsiteTextBox"
-                    Grid.Row="2"
-                    Grid.Column="1"
-                    Margin="5"
-                    VerticalAlignment="Center"
-                    materialDesign:HintAssist.Hint="Website"
-                    Style="{StaticResource MaterialDesignOutlinedTextBox}">
-                    <TextBox.Text>
-                        <Binding
-                            Mode="TwoWay"
-                            Path="NewWebsite"
-                            UpdateSourceTrigger="PropertyChanged" />
-                    </TextBox.Text>
-                </TextBox>
-                <TextBox
-                    x:Name="UsernameTextBox"
-                    Grid.Row="3"
-                    Grid.Column="1"
-                    Margin="5"
-                    VerticalAlignment="Center"
-                    materialDesign:HintAssist.Hint="Username"
-                    Style="{StaticResource MaterialDesignOutlinedTextBox}">
-                    <TextBox.Text>
-                        <Binding
-                            Mode="TwoWay"
-                            Path="NewUsername"
-                            UpdateSourceTrigger="PropertyChanged" />
-                    </TextBox.Text>
-                </TextBox>
-                <PasswordBox
-                    x:Name="PasswordTextBox"
-                    Grid.Row="4"
-                    Grid.Column="1"
-                    Margin="5"
-                    VerticalAlignment="Center"
-                    materialDesign:HintAssist.FloatingScale="0.8"
-                    materialDesign:HintAssist.Hint="Password"
-                    materialDesign:TextFieldAssist.HasClearButton="True"
-                    Style="{StaticResource MaterialDesignOutlinedRevealPasswordBox}">
-                    <materialDesign:PasswordBoxAssist.Password>
-                        <Binding Path="NewPassword" UpdateSourceTrigger="PropertyChanged" />
-                    </materialDesign:PasswordBoxAssist.Password>
-                </PasswordBox>
-                <TextBlock
-                    Grid.Row="5"
-                    Grid.Column="1"
-                    Margin="5,0,5,0"
-                    FontWeight="Light"
-                    Foreground="{Binding StatusMessageColor, UpdateSourceTrigger=PropertyChanged}"
-                    Text="{Binding StatusMessage, UpdateSourceTrigger=PropertyChanged, FallbackValue=YourrAccounttHassBeennAddedSuCCeSfULlY}"
-                    TextWrapping="Wrap" />
-                <Grid
-                    Grid.Row="6"
-                    Grid.Column="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="10" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Button
-                        Grid.Column="0"
-                        Width="90"
-                        Height="30"
-                        HorizontalAlignment="Center"
-                        Command="{Binding AddNewAccountCommand}"
-                        Content="Add"
-                        FontSize="14" />
-                    <Button
-                        Grid.Column="2"
-                        Width="90"
-                        Height="30"
-                        HorizontalAlignment="Center"
-                        Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
-                        Content="Cancel"
-                        FontSize="14" />
-                </Grid>
-            </Grid>
+            <ContentControl Content="{Binding CurrentDialog}">
+                <ContentControl.Resources>
+                    <DataTemplate x:Key="AddAccountTemplate">
+                        <Grid
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="300"
+                            Height="350">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="10" />
+                                <RowDefinition Height="2*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="2*" />
+                                <RowDefinition Height="10" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Text="Add an account" />
+                            <TextBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.Hint="Source"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <TextBox.Text>
+                                    <Binding
+                                        ElementName="MainWindow"
+                                        Mode="TwoWay"
+                                        Path="DataContext.NewSource"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </TextBox.Text>
+                            </TextBox>
+                            <TextBox
+                                x:Name="UsernameTextBox"
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.Hint="Username"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <TextBox.Text>
+                                    <Binding
+                                        ElementName="MainWindow"
+                                        Mode="TwoWay"
+                                        Path="DataContext.NewUsername"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </TextBox.Text>
+                            </TextBox>
+                            <PasswordBox
+                                x:Name="PasswordTextBox"
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.FloatingScale="0.8"
+                                materialDesign:HintAssist.Hint="Password"
+                                materialDesign:TextFieldAssist.HasClearButton="True"
+                                Style="{StaticResource MaterialDesignOutlinedRevealPasswordBox}">
+                                <materialDesign:PasswordBoxAssist.Password>
+                                    <Binding
+                                        ElementName="MainWindow"
+                                        Path="DataContext.NewPassword"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </materialDesign:PasswordBoxAssist.Password>
+                            </PasswordBox>
+                            <Grid
+                                Grid.Row="5"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    Grid.Column="0"
+                                    Width="90"
+                                    Height="30"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding ElementName=MainWindow, Path=DataContext.AddNewAccountCommand}"
+                                    Content="Add"
+                                    FontSize="14" />
+                                <Button
+                                    Grid.Column="2"
+                                    Width="90"
+                                    Height="30"
+                                    HorizontalAlignment="Center"
+                                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                                    Content="Cancel"
+                                    FontSize="14" />
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
+                    <DataTemplate x:Key="ConfirmDeleteTemplate">
+                        <Grid
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="250"
+                            Height="150"
+                            Margin="15">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="2*" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid
+                                Grid.Row="0"
+                                Grid.ColumnSpan="2"
+                                Margin="10"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <materialDesign:PackIcon
+                                    Grid.Column="0"
+                                    Width="40"
+                                    Height="40"
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="Orange"
+                                    Kind="WarningOutline" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Margin="10,0,0,0"
+                                    FontWeight="Light"
+                                    Foreground="WhiteSmoke"
+                                    Text="{Binding ElementName=MainWindow, Path=DataContext.DeleteDialogText}"
+                                    TextWrapping="Wrap" />
+                            </Grid>
+                            <Button
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Width="90"
+                                Height="30"
+                                Margin="20,0,0,0"
+                                HorizontalAlignment="Center"
+                                Command="{Binding ElementName=MainWindow, Path=DataContext.DeleteAccountCommand}"
+                                Content="Delete"
+                                FontSize="14" />
+                            <Button
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Width="90"
+                                Height="30"
+                                Margin="0,0,20,0"
+                                HorizontalAlignment="Center"
+                                Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                                Content="Cancel"
+                                FontSize="14" />
+                        </Grid>
+                    </DataTemplate>
+                </ContentControl.Resources>
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentDialog}" Value="AddAccountTemplate">
+                                <Setter Property="ContentTemplate" Value="{StaticResource AddAccountTemplate}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentDialog}" Value="ConfirmDeleteTemplate">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ConfirmDeleteTemplate}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
         </materialDesign:DialogHost.DialogContent>
-        <Grid>
+        <Grid HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="60" />
                 <RowDefinition Height="*" />
@@ -163,7 +239,7 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     materialDesign:ButtonAssist.CornerRadius="10"
-                    Command="{x:Static materialDesign:DialogHost.OpenDialogCommand}"
+                    Command="{Binding AddAccountDialogCommand}"
                     Style="{StaticResource MaterialDesignRaisedButton}">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon
@@ -184,7 +260,7 @@
                     VerticalAlignment="Center"
                     materialDesign:ButtonAssist.CornerRadius="10"
                     Command="{Binding SignOutCommand}"
-                    CommandParameter="{Binding ElementName=MainWindow, Mode=OneTime}"
+                    CommandParameter="{Binding ElementName=MainWindow}"
                     Style="{StaticResource MaterialDesignRaisedButton}">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon
@@ -207,84 +283,151 @@
                     VerticalScrollBarVisibility="Auto">
                     <ItemsControl
                         x:Name="AccountsItemControl"
-                        Grid.Row="1"
-                        Grid.ColumnSpan="2"
                         HorizontalAlignment="Stretch"
                         ItemsSource="{Binding CurrentUser.Accounts}"
                         ScrollViewer.VerticalScrollBarVisibility="Visible">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid HorizontalAlignment="Stretch" Columns="1" />
+                                <StackPanel />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Expander ExpandDirection="Right">
-                                    <Grid Background="#1e1e1e">
+                                <Border BorderBrush="Gray" BorderThickness="0.5">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="10" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="auto" />
+                                            <ColumnDefinition Width="auto" />
+                                            <ColumnDefinition Width="auto" />
                                         </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*" />
-                                            <RowDefinition Height="*" />
-                                            <RowDefinition Height="*" />
-                                        </Grid.RowDefinitions>
-                                        <Border
-                                            Grid.Row="1"
+                                        <Expander
+                                            x:Name="AccountExpander"
+                                            Grid.Column="0"
+                                            Margin="0,10,0,0"
+                                            ExpandDirection="Right">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="10" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="10" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="0,0,15,0"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="Light"
+                                                    Text="Username:" />
+                                                <TextBox
+                                                    Grid.Column="2"
+                                                    Width="100"
+                                                    Height="50"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalContentAlignment="Center"
+                                                    Focusable="False"
+                                                    IsReadOnly="True"
+                                                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                    Text="{Binding Username}" />
+                                                <Button
+                                                    Grid.Column="3"
+                                                    Margin="5,0,5,0"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
+                                                    CommandParameter="{Binding Username}"
+                                                    Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                    ToolTip="MaterialDesignIconForegroundButton">
+                                                    <materialDesign:PackIcon Kind="ContentCopy" />
+                                                </Button>
+                                                <TextBlock
+                                                    Grid.Column="4"
+                                                    Margin="0,0,15,0"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="Light"
+                                                    Text="Password:" />
+                                                <PasswordBox
+                                                    x:Name="PasswordTextBox"
+                                                    Grid.Column="5"
+                                                    Width="140"
+                                                    Height="50"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    materialDesign:TextFieldAssist.HasClearButton="False"
+                                                    Focusable="False"
+                                                    Style="{StaticResource MaterialDesignOutlinedRevealPasswordBox}">
+                                                    <materialDesign:PasswordBoxAssist.Password>
+                                                        <Binding Path="DecryptedPassword" UpdateSourceTrigger="PropertyChanged" />
+                                                    </materialDesign:PasswordBoxAssist.Password>
+                                                </PasswordBox>
+                                                <Button
+                                                    Grid.Column="6"
+                                                    Margin="5,0,5,0"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
+                                                    CommandParameter="{Binding DecryptedPassword}"
+                                                    Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                    ToolTip="MaterialDesignIconForegroundButton">
+                                                    <materialDesign:PackIcon Kind="ContentCopy" />
+                                                </Button>
+                                                <Button
+                                                    Grid.Column="7"
+                                                    Margin="5,0,5,0"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
+                                                    CommandParameter="{Binding DecryptedPassword}"
+                                                    Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                    ToolTip="MaterialDesignIconForegroundButton">
+                                                    <materialDesign:PackIcon Kind="PencilOutline" />
+                                                </Button>
+                                                <Button
+                                                    Grid.Column="8"
+                                                    VerticalAlignment="Center"
+                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.DeleteAccountDialogCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                    ToolTip="MaterialDesignIconForegroundButton">
+                                                    <materialDesign:PackIcon Kind="Delete" />
+                                                </Button>
+                                            </Grid>
+                                        </Expander>
+                                        <materialDesign:PackIcon
+                                            Grid.Column="1"
+                                            Width="40"
+                                            Height="40"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Kind="Instagram" />
+                                        <TextBlock
                                             Grid.Column="2"
-                                            BorderBrush="LightGray"
-                                            BorderThickness="0.5">
-                                            <TextBlock
-                                                Margin="10"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Text="{Binding Username}" />
-                                        </Border>
-                                        <Button
-                                            Grid.Row="1"
-                                            Grid.Column="3"
+                                            Margin="25,0,0,0"
                                             VerticalAlignment="Center"
-                                            Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
-                                            CommandParameter="{Binding Username}"
-                                            Style="{StaticResource MaterialDesignIconForegroundButton}"
-                                            ToolTip="MaterialDesignIconForegroundButton">
-                                            <materialDesign:PackIcon Kind="ContentCopy" />
-                                        </Button>
-                                        <Border
-                                            Grid.Row="1"
-                                            Grid.Column="4"
-                                            BorderBrush="LightGray"
-                                            BorderThickness="0.5">
-                                            <TextBlock
-                                                Margin="10"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Text="{Binding DecryptedPassword}" />
-                                        </Border>
-                                        <Button
-                                            Grid.Row="1"
-                                            Grid.Column="5"
-                                            VerticalAlignment="Center"
-                                            Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
-                                            CommandParameter="{Binding DecryptedPassword}"
-                                            Style="{StaticResource MaterialDesignIconForegroundButton}"
-                                            ToolTip="MaterialDesignIconForegroundButton">
-                                            <materialDesign:PackIcon Kind="ContentCopy" />
-                                        </Button>
+                                            FontSize="20"
+                                            Text="{Binding Source}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsExpanded, ElementName=AccountExpander}" Value="True">
+                                                            <Setter Property="Visibility" Value="Hidden" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Grid>
-                                </Expander>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
             </Grid>
-
             <StatusBar
                 Grid.Row="2"
                 Grid.ColumnSpan="3"
@@ -292,7 +435,32 @@
                 FontSize="15"
                 Foreground="{DynamicResource PrimaryHueMidBrush}">
                 <StatusBarItem>
-                    <TextBlock Margin="20,0,0,0" Text="{Binding StatusBarText, UpdateSourceTrigger=PropertyChanged, FallbackValue=ThisisthestatusMessage}" />
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon
+                            Width="15"
+                            Height="15"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            Foreground="{Binding StatusBarColor}"
+                            Kind="{Binding StatusBarIcon, UpdateSourceTrigger=PropertyChanged}"
+                            Visibility="{Binding ElementName=StatusMessageTextBlock, Path=Visibility}" />
+                        <TextBlock
+                            x:Name="StatusMessageTextBlock"
+                            Margin="10,0,0,0"
+                            Foreground="{Binding StatusBarColor, UpdateSourceTrigger=PropertyChanged}"
+                            Text="{Binding StatusBarText, UpdateSourceTrigger=PropertyChanged, FallbackValue=ThisisthestatusMessage}">
+                            <TextBlock.Style>
+                                <Style BasedOn="{StaticResource MaterialDesignTextBlock}" TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding StatusBarText.Length}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </StatusBarItem>
             </StatusBar>
         </Grid>

@@ -14,24 +14,40 @@ using System.Windows.Media;
 using MaterialDesignColors.Recommended;
 using MaterialDesignThemes.Wpf;
 using Password_manager.Views;
+using Password_manager.Migrations;
+using System.Collections.ObjectModel;
 
 namespace Password_manager.Viewmodels
 {
     public class MainViewModel : BaseModel
     {
-        private MasterAccount currentUser;
+
         private string masterPassword;
         private string newUsername;
         private string newPassword;
-        private string newWebsite;
-        private string statusMessage;
-        private SolidColorBrush statusMessageColor;
+        private string newSource;
+        private string currentDialog;
+        private string deleteDialogText;
+        private string statusBarText = "";
+        private SolidColorBrush statusBarColor;
+        private PackIconKind statusBarIcon;
+        private bool isDialogOpen;
 
+        private MasterAccount currentUser;
+        private ObservableCollection<Account> accounts;
+        private Account currentAccount;
+
+        private ICommand addAccountDialogCommand;
+        private ICommand deleteAccountDialogCommand;
         private ICommand addNewAccountCommand;
+        private ICommand editAccountCommand;
+        private ICommand deleteAccountCommand;
         private ICommand copyTextCommand;
         private ICommand signOutCommand;
 
         private WindowService windowService = new WindowService();
+
+
 
         public ICommand CopyTextCommand
         {
@@ -57,6 +73,30 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public ICommand EditAccountCommand
+        {
+            get
+            {
+                if(editAccountCommand == null)
+                {
+                    editAccountCommand = new RelayCommand(_ => EditAccount());
+                }
+                return editAccountCommand;
+            }
+        }
+        public ICommand DeleteAccountCommand
+        {
+            get
+            {
+                if(deleteAccountCommand == null)
+                {
+                    deleteAccountCommand = new RelayCommand(_ => DeleteAccount());
+                }
+                return deleteAccountCommand;
+            }
+        }
+
+
         public ICommand SignOutCommand
         {
             get
@@ -66,6 +106,30 @@ namespace Password_manager.Viewmodels
                     signOutCommand = new RelayCommand(param => SignOut(param));
                 }
                 return signOutCommand;
+            }
+        }
+
+        public ICommand AddAccountDialogCommand
+        {
+            get
+            {
+                if(addAccountDialogCommand == null)
+                {
+                    addAccountDialogCommand = new RelayCommand(_ => AddAccountDialog());
+                }
+                return addAccountDialogCommand;
+            }
+        }
+
+        public ICommand DeleteAccountDialogCommand
+        {
+            get
+            {
+                if(deleteAccountDialogCommand == null)
+                {
+                    deleteAccountDialogCommand = new RelayCommand(param => DeleteAccountDialog(param));
+                }
+                return deleteAccountDialogCommand;
             }
         }
 
@@ -89,35 +153,88 @@ namespace Password_manager.Viewmodels
             }
         }
 
-        public string NewWebsite
+        public string NewSource
         {
-            get => newWebsite;
+            get => newSource;
             set
             {
-                newWebsite = value;
+                newSource = value;
                 OnPropertyChanged();
             }
         }
 
-        public string StatusMessage
+
+        public string CurrentDialog
         {
-            get => statusMessage;
+            get => currentDialog;
             set
             {
-                statusMessage = value;
+                currentDialog = value;
                 OnPropertyChanged();
             }
         }
 
-        public SolidColorBrush StatusMessageColor
+        public string DeleteDialogText
         {
-            get => statusMessageColor;
+            get => deleteDialogText;
             set
             {
-                statusMessageColor = value;
+                deleteDialogText = value;
                 OnPropertyChanged();
             }
         }
+
+        public string StatusBarText
+        {
+            get => statusBarText;
+            set
+            {
+                statusBarText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public SolidColorBrush StatusBarColor
+        {
+            get => statusBarColor;
+            set
+            {
+                statusBarColor = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public PackIconKind StatusBarIcon
+        {
+            get => statusBarIcon;
+            set
+            {
+                statusBarIcon = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsDialogOpen
+        {
+            get => isDialogOpen;
+            set
+            {
+                isDialogOpen = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Account CurrentAccount
+        {
+            get => currentAccount;
+            set
+            {
+                currentAccount = value;
+                DeleteDialogText = $"Are you sure you want to delete \"{CurrentAccount.Username}\" from {CurrentAccount.Source}?";
+                OnPropertyChanged();
+            }
+        }
+
 
         public MasterAccount CurrentUser
         {
@@ -139,6 +256,16 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public ObservableCollection<Account> Accounts
+        {
+            get => accounts;
+            set
+            {
+                accounts = value;
+                OnPropertyChanged();
+            }
+        }
+
         public MainViewModel(MasterAccount user, string masterPassword)
         {
             CurrentUser = user;
@@ -156,7 +283,13 @@ namespace Password_manager.Viewmodels
 //#endif
         }
 
-        public void AddNewAccount()
+        private void AddAccountDialog()
+        {
+            CurrentDialog = "AddAccountTemplate";
+            IsDialogOpen = true;
+        }
+
+        private void AddNewAccount()
         {
 
             string username = NewUsername.ToLower();
@@ -172,47 +305,58 @@ namespace Password_manager.Viewmodels
                         Username = username,
                         EncryptedPassword = password,
                         AccountSalt = generatedSalt,
-                        Website = NewWebsite,
+                        Source = NewSource,
                         MasterAccountId = CurrentUser.UserId
                     };
                     dbContext.Accounts.Add(newUser);
                     dbContext.SaveChanges();
+
+                    //Adding to ObservableCollection<Account> Accounts for UI to reflect changes
+                    newUser.DecryptedPassword = EncryptionService.Decrypt(newUser.EncryptedPassword, MasterPassword, newUser.AccountSalt);
+                    CurrentUser.Accounts.Add(newUser);
+                    CurrentAccount = newUser;
                 }
                 ResetProperties();
-                DialogHost.CloseDialogCommand.Execute(null, null);
-            }
-            catch (DbUpdateException ex)
-            {
-                if (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlException && sqlException.Number == 2601)
-                {
-                    foreach (SqlError error in sqlException.Errors)
-                    {
-                        if (error.Number == 2601)
-                        {
-                            if (error.Message.Contains("Username"))
-                            {
-                                
-                            }
-                            else if (error.Message.Contains("Email"))
-                            {
-                                
-                            }
-                            else
-                            {
-                                
-                            }
-                        }
-                    }
-                    return;
-                }
+                IsDialogOpen = false;
+                SetStatusText(false, $"Succesfully added account \"{CurrentAccount.Username}\" from {CurrentAccount.Source}.");
             }
             catch (Exception ex)
             {
-                
+                SetStatusText(true, $"Error: {ex.Message}");
             }
         }
 
-        private void SignOut(object param)
+
+        public void EditAccount()
+        {
+
+        }
+
+        public void DeleteAccount()
+        {
+            if( CurrentAccount != null)
+            {
+                using(var databaseContext = new DatabaseContext())
+                {
+                    databaseContext.Accounts.Remove(CurrentAccount);
+                    databaseContext.SaveChanges();
+                }
+                CurrentUser.Accounts.Remove(CurrentAccount);
+            }
+            DialogHost.CloseDialogCommand.Execute(null, null);
+            IsDialogOpen = false;
+            SetStatusText(false, $"Succesfully deleted account \"{CurrentAccount.Username}\" from {CurrentAccount.Source}.");
+        }
+
+        private void DeleteAccountDialog(object param)
+        {
+            CurrentAccount = param as Account;
+            CurrentDialog = "ConfirmDeleteTemplate";
+            IsDialogOpen = true;
+        }
+
+
+        public void SignOut(object param)
         {
             windowService.ShowWindow(new LoginView(), new LoginViewModel());
             var window = param as MainView;
@@ -221,7 +365,7 @@ namespace Password_manager.Viewmodels
 
         private bool AllFieldsCompleted()
         {
-            return !string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(NewWebsite);
+            return !string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(NewSource);
         }
 
         public void CopyText(object param)
@@ -231,8 +375,6 @@ namespace Password_manager.Viewmodels
                 string textToCopy = param as string;
                 Clipboard.SetText(textToCopy);
             }
-
-
         }
 
 
@@ -244,11 +386,19 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public void SetStatusText(bool isError, string text)
+        {
+            StatusBarIcon = isError ? MaterialDesignThemes.Wpf.PackIconKind.ErrorOutline :
+            MaterialDesignThemes.Wpf.PackIconKind.CheckOutline;
+            StatusBarText = text;
+            StatusBarColor = isError ? new SolidColorBrush(Colors.Orange) : new SolidColorBrush(Colors.Teal);
+        }
+
         public void ResetProperties()
         {
             NewUsername = "";
             NewPassword = "";
-            NewWebsite = "";
+            NewSource = "";
         }
     }
 }
