@@ -11,8 +11,8 @@ using Password_manager;
 namespace Password_manager.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20231123164043_WebsiteToSource")]
-    partial class WebsiteToSource
+    [Migration("20231129173054_AppIcon")]
+    partial class AppIcon
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,6 +35,13 @@ namespace Password_manager.Migrations
                     b.Property<string>("AccountSalt")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AccountSourceType")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("ApplicationIcon")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("EncryptedPassword")
                         .IsRequired()

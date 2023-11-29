@@ -16,6 +16,11 @@ using MaterialDesignThemes.Wpf;
 using Password_manager.Views;
 using Password_manager.Migrations;
 using System.Collections.ObjectModel;
+using Microsoft.Win32;
+using System.IO;
+using System.Windows.Media.Imaging;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Password_manager.Viewmodels
 {
@@ -26,6 +31,9 @@ namespace Password_manager.Viewmodels
         private string newUsername;
         private string newPassword;
         private string newSource;
+        private BitmapImage newBitmapIcon;
+        private byte[] newIcon;
+        private Account.SourceType selectedSourceType;
         private string currentDialog;
         private string deleteDialogText;
         private string statusBarText = "";
@@ -40,10 +48,14 @@ namespace Password_manager.Viewmodels
         private ICommand addAccountDialogCommand;
         private ICommand deleteAccountDialogCommand;
         private ICommand addNewAccountCommand;
+        private ICommand editAccountDialogCommand;
+        private ICommand closeEditAccountDialogCommand;
         private ICommand editAccountCommand;
         private ICommand deleteAccountCommand;
         private ICommand copyTextCommand;
         private ICommand signOutCommand;
+        private ICommand openHttpLinkCommand;
+        private ICommand selectApplicationCommand;
 
         private WindowService windowService = new WindowService();
 
@@ -79,7 +91,7 @@ namespace Password_manager.Viewmodels
             {
                 if(editAccountCommand == null)
                 {
-                    editAccountCommand = new RelayCommand(_ => EditAccount());
+                    editAccountCommand = new RelayCommand(_ => EditAccount(), _=> AllFieldsCompleted());
                 }
                 return editAccountCommand;
             }
@@ -121,6 +133,30 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public ICommand EditAccountDialogCommand
+        {
+            get
+            {
+                if(editAccountDialogCommand == null)
+                {
+                    editAccountDialogCommand = new RelayCommand(param => EditAccountDialog(param));
+                }
+                return editAccountDialogCommand;
+            }
+        }
+
+        public ICommand CloseEditAccountDialogCommand
+        {
+            get
+            {
+                if(closeEditAccountDialogCommand == null)
+                {
+                    closeEditAccountDialogCommand = new RelayCommand(param => CloseEditAccountDialog());
+                }
+                return closeEditAccountDialogCommand;
+            }
+        }
+
         public ICommand DeleteAccountDialogCommand
         {
             get
@@ -130,6 +166,29 @@ namespace Password_manager.Viewmodels
                     deleteAccountDialogCommand = new RelayCommand(param => DeleteAccountDialog(param));
                 }
                 return deleteAccountDialogCommand;
+            }
+        }
+        public ICommand OpenHttpLinkCommand
+        {
+            get
+            {
+                if(openHttpLinkCommand == null)
+                {
+                   openHttpLinkCommand = new RelayCommand(param => OpenHttpLink(param));
+                }
+                return openHttpLinkCommand;
+            }
+        }
+
+        public ICommand SelectApplicationCommand
+        {
+            get
+            {
+                if(selectApplicationCommand == null)
+                {
+                    selectApplicationCommand = new RelayCommand(_ => SelectApplication());
+                }
+                return selectApplicationCommand;
             }
         }
 
@@ -163,6 +222,39 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public BitmapImage NewBitmapIcon
+        {
+            get => newBitmapIcon;
+            set
+            {
+                newBitmapIcon = value;
+                OnPropertyChanged();
+            }
+        }
+        public byte[] NewIcon
+        {
+            get => newIcon;
+            set
+            {
+                newIcon = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Account.SourceType SelectedSourceType
+        {
+            get => selectedSourceType;
+            set
+            {
+                selectedSourceType = value;
+                OnPropertyChanged(nameof(SourceType));
+                OnPropertyChanged(nameof(SelectedSourceType));
+            }
+        }
+
+        public string SourceType => SelectedSourceType.ToString();
+
+        public Array SourceTypes => Enum.GetValues(typeof(Account.SourceType));
 
         public string CurrentDialog
         {
@@ -283,6 +375,12 @@ namespace Password_manager.Viewmodels
 //#endif
         }
 
+        
+        public async Task InitializeAsync()
+        {
+            //for async operations upon initialization of mainviewmodel    
+        }
+
         private void AddAccountDialog()
         {
             CurrentDialog = "AddAccountTemplate";
@@ -295,18 +393,29 @@ namespace Password_manager.Viewmodels
             string username = NewUsername.ToLower();
             string generatedSalt = EncryptionService.GenerateSalt();
             string password = EncryptionService.Encrypt(NewPassword, MasterPassword, generatedSalt);
-
             try
             {
+                
                 using (DatabaseContext dbContext = new DatabaseContext())
                 {
+                    if(SelectedSourceType == Account.SourceType.Web)
+                    {
+                        NewIcon = null;
+                    }
+                    else
+                    {
+                        NewIcon = ConvertBitmapImageToByteArray(NewBitmapIcon);
+                    }
+
                     Account newUser = new Account
                     {
                         Username = username,
                         EncryptedPassword = password,
                         AccountSalt = generatedSalt,
+                        AccountSourceType = SelectedSourceType,
                         Source = NewSource,
-                        MasterAccountId = CurrentUser.UserId
+                        MasterAccountId = CurrentUser.UserId,
+                        ApplicationIcon = NewIcon
                     };
                     dbContext.Accounts.Add(newUser);
                     dbContext.SaveChanges();
@@ -327,12 +436,55 @@ namespace Password_manager.Viewmodels
         }
 
 
-        public void EditAccount()
+        private void EditAccountDialog(object param)
         {
-
+            CurrentAccount = param as Account;
+            NewUsername = CurrentAccount.Username;
+            NewPassword = CurrentAccount.DecryptedPassword;
+            SelectedSourceType = CurrentAccount.AccountSourceType;
+            NewSource = CurrentAccount.Source;
+            CurrentDialog = "EditAccountTemplate";
+            IsDialogOpen = true;
         }
 
-        public void DeleteAccount()
+        private void CloseEditAccountDialog()
+        {
+            IsDialogOpen = false;
+            ResetProperties();
+        }
+
+        private async void EditAccount()
+        {
+            try
+            {
+                using(DatabaseContext dbcontext  = new DatabaseContext())
+                {
+                    var accountToEdit = await dbcontext.Accounts.FindAsync(CurrentAccount.AccountId);
+                    if(accountToEdit != null)
+                    {
+                        CurrentUser.Accounts.Remove(CurrentAccount);
+                        accountToEdit.Username = NewUsername.ToLower();
+                        accountToEdit.Source = NewSource;
+                        accountToEdit.AccountSourceType = SelectedSourceType;
+                        accountToEdit.EncryptedPassword = EncryptionService.Encrypt(NewPassword, MasterPassword, CurrentAccount.AccountSalt);
+                        accountToEdit.DecryptedPassword = EncryptionService.Decrypt(accountToEdit.EncryptedPassword, MasterPassword, CurrentAccount.AccountSalt);
+                        CurrentUser.Accounts.Add(accountToEdit);
+                    }
+
+                    dbcontext.Accounts.Update(accountToEdit);
+                    await dbcontext.SaveChangesAsync();
+                    IsDialogOpen = false;
+                    ResetProperties();
+                    SetStatusText(false, $"Succesfully edited account \"{accountToEdit.Username}\" from {accountToEdit.Source}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatusText(true, $"Error: {ex.Message}");
+            }
+        }
+
+        private void DeleteAccount()
         {
             if( CurrentAccount != null)
             {
@@ -356,7 +508,7 @@ namespace Password_manager.Viewmodels
         }
 
 
-        public void SignOut(object param)
+        private void SignOut(object param)
         {
             windowService.ShowWindow(new LoginView(), new LoginViewModel());
             var window = param as MainView;
@@ -368,7 +520,7 @@ namespace Password_manager.Viewmodels
             return !string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(NewSource);
         }
 
-        public void CopyText(object param)
+        private void CopyText(object param)
         {
             if(param != null)
             {
@@ -378,7 +530,7 @@ namespace Password_manager.Viewmodels
         }
 
 
-        public void DecryptAllPasswords(string masterPassword)
+        private void DecryptAllPasswords(string masterPassword)
         {
             foreach(Account acc in CurrentUser.Accounts)
             {
@@ -386,7 +538,7 @@ namespace Password_manager.Viewmodels
             }
         }
 
-        public void SetStatusText(bool isError, string text)
+        private void SetStatusText(bool isError, string text)
         {
             StatusBarIcon = isError ? MaterialDesignThemes.Wpf.PackIconKind.ErrorOutline :
             MaterialDesignThemes.Wpf.PackIconKind.CheckOutline;
@@ -399,6 +551,84 @@ namespace Password_manager.Viewmodels
             NewUsername = "";
             NewPassword = "";
             NewSource = "";
+        }
+
+        private void OpenHttpLink(object param)
+        {
+            if (param != null)
+            {
+                CurrentAccount = param as Account;
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = CurrentAccount.Source,
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    SetStatusText(true, $"Error: {ex.Message}");
+                }
+            }
+        }
+
+        private void SelectApplication()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Applications (*.exe)|*.exe|All files (*.*)|*.*",
+                Title = "Select an Application"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string selectedPath = openFileDialog.FileName;
+                string appName = Path.GetFileNameWithoutExtension(selectedPath);
+
+                // Store the application name in a property
+                NewSource = appName; // Assuming ApplicationName is a property in your ViewModel
+
+                // Extract and store the icon
+                Icon extractedIcon = Icon.ExtractAssociatedIcon(selectedPath);
+                if (extractedIcon != null)
+                {
+                    using (MemoryStream iconStream = new MemoryStream())
+                    {
+                        extractedIcon.ToBitmap().Save(iconStream, ImageFormat.Png);
+                        iconStream.Seek(0, SeekOrigin.Begin);
+
+                        BitmapImage bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = iconStream;
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.EndInit();
+
+                        NewBitmapIcon = bitmapImage; // Assuming ApplicationIcon is a property of type BitmapImage
+                    }
+                }
+            }
+        }
+
+        public byte[] ConvertBitmapImageToByteArray(BitmapImage bitmapImage)
+        {
+            if (bitmapImage == null)
+            {
+                return null;
+            }
+
+            byte[] data;
+            PngBitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmapImage));
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                encoder.Save(ms);
+                data = ms.ToArray();
+            }
+
+            return data;
         }
     }
 }

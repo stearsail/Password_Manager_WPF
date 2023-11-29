@@ -19,7 +19,15 @@
     TextElement.Foreground="{DynamicResource MaterialDesignBody}"
     mc:Ignorable="d">
     <Window.Resources>
+        <domain:FullUrlToBaseUrlConverter x:Key="FullUrlToBaseUrlConverter" />
+        <domain:UrlToFaviconConverter x:Key="UrlToFaviconConverter" />
         <domain:NonEmptyStringConverter x:Key="NonEmptyStringConverter" />
+        <domain:ByteArrayToBitmapImageConverter x:Key="ByteArrayToBitmapImageConverter" />
+        <domain:UrlToDisplayNameConverter x:Key="UrlToDisplayNameConverter" />
+        <Style x:Key="HelperToolTip" TargetType="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}" />
+            <Setter Property="Foreground" Value="WhiteSmoke" />
+        </Style>
     </Window.Resources>
     <materialDesign:DialogHost IsOpen="{Binding IsDialogOpen}">
         <materialDesign:DialogHost.DialogContent>
@@ -42,6 +50,7 @@
                                 <RowDefinition Height="3*" />
                                 <RowDefinition Height="3*" />
                                 <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
                                 <RowDefinition Height="2*" />
                                 <RowDefinition Height="10" />
                             </Grid.RowDefinitions>
@@ -52,24 +61,61 @@
                                 VerticalAlignment="Center"
                                 FontSize="20"
                                 Text="Add an account" />
-                            <TextBox
+                            <ComboBox
                                 Grid.Row="2"
                                 Grid.Column="1"
                                 Margin="5"
                                 VerticalAlignment="Center"
-                                materialDesign:HintAssist.Hint="Source"
-                                Style="{StaticResource MaterialDesignOutlinedTextBox}">
-                                <TextBox.Text>
-                                    <Binding
-                                        ElementName="MainWindow"
-                                        Mode="TwoWay"
-                                        Path="DataContext.NewSource"
-                                        UpdateSourceTrigger="PropertyChanged" />
-                                </TextBox.Text>
-                            </TextBox>
+                                materialDesign:HintAssist.Hint="Source type"
+                                ItemsSource="{Binding ElementName=MainWindow, Path=DataContext.SourceTypes}"
+                                SelectedItem="{Binding ElementName=MainWindow, Path=DataContext.SelectedSourceType, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                            <Grid
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="5">
+                                <TextBox x:Name="SourceTextBox" VerticalAlignment="Center">
+                                    <TextBox.Style>
+                                        <Style BasedOn="{StaticResource MaterialDesignOutlinedTextBox}" TargetType="TextBox">
+                                            <Setter Property="materialDesign:HintAssist.Hint" Value="Enter the source type" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=MainWindow, Path=DataContext.SourceType}" Value="Web">
+                                                    <Setter Property="materialDesign:HintAssist.Hint" Value="Paste Website URL" />
+                                                    <Setter Property="Text" Value="{Binding Mode=TwoWay, ElementName=MainWindow, Path=DataContext.NewSource, Converter={StaticResource FullUrlToBaseUrlConverter}, UpdateSourceTrigger=PropertyChanged}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ElementName=MainWindow, Path=DataContext.SourceType}" Value="Application">
+                                                    <Setter Property="materialDesign:HintAssist.Hint" Value="Browse Application" />
+                                                    <Setter Property="Text" Value="{Binding Mode=TwoWay, ElementName=MainWindow, Path=DataContext.NewSource, UpdateSourceTrigger=PropertyChanged}" />
+                                                    <Setter Property="IsReadOnly" Value="True" />
+                                                    <Setter Property="Focusable" Value="False" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                <Button
+                                    Width="30"
+                                    Height="30"
+                                    Margin="0,0,20,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding ElementName=MainWindow, Path=DataContext.SelectApplicationCommand}">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource MaterialDesignIconButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=MainWindow, Path=DataContext.SourceType}" Value="Application">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <materialDesign:PackIcon Foreground="Teal" Kind="FolderOpen" />
+                                </Button>
+                            </Grid>
                             <TextBox
                                 x:Name="UsernameTextBox"
-                                Grid.Row="3"
+                                Grid.Row="4"
                                 Grid.Column="1"
                                 Margin="5"
                                 VerticalAlignment="Center"
@@ -85,7 +131,7 @@
                             </TextBox>
                             <PasswordBox
                                 x:Name="PasswordTextBox"
-                                Grid.Row="4"
+                                Grid.Row="5"
                                 Grid.Column="1"
                                 Margin="5"
                                 VerticalAlignment="Center"
@@ -101,7 +147,7 @@
                                 </materialDesign:PasswordBoxAssist.Password>
                             </PasswordBox>
                             <Grid
-                                Grid.Row="5"
+                                Grid.Row="6"
                                 Grid.Column="1"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
@@ -195,6 +241,148 @@
                                 FontSize="14" />
                         </Grid>
                     </DataTemplate>
+                    <DataTemplate x:Key="EditAccountTemplate">
+                        <Grid
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Width="300"
+                            Height="350">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="10" />
+                                <RowDefinition Height="2*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="3*" />
+                                <RowDefinition Height="2*" />
+                                <RowDefinition Height="10" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Text="Edit account" />
+                            <ComboBox
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.Hint="Source type"
+                                ItemsSource="{Binding ElementName=MainWindow, Path=DataContext.SourceTypes}"
+                                SelectedItem="{Binding ElementName=MainWindow, Path=DataContext.SelectedSourceType, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignOutlinedComboBox}" />
+                            <TextBox
+                                Grid.Row="3"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                ToolTipService.InitialShowDelay="300">
+                                <TextBox.Text>
+                                    <Binding
+                                        Converter="{StaticResource FullUrlToBaseUrlConverter}"
+                                        ElementName="MainWindow"
+                                        Mode="TwoWay"
+                                        Path="DataContext.NewSource"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </TextBox.Text>
+                                <TextBox.Style>
+                                    <Style BasedOn="{StaticResource MaterialDesignOutlinedTextBox}" TargetType="TextBox">
+                                        <Setter Property="materialDesign:HintAssist.Hint" Value="Enter the source type" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=MainWindow, Path=DataContext.SourceType}" Value="Web">
+                                                <Setter Property="materialDesign:HintAssist.Hint" Value="Paste Website URL" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ElementName=MainWindow, Path=DataContext.SourceType}" Value="Application">
+                                                <Setter Property="materialDesign:HintAssist.Hint" Value="Enter Application Name" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                                <TextBox.ToolTip>
+                                    <ToolTip
+                                        Width="220"
+                                        Height="50"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource HelperToolTip}">
+                                        <TextBlock
+                                            Margin="10,0,0,0"
+                                            Text="You must paste the website's URL."
+                                            TextWrapping="Wrap" />
+                                    </ToolTip>
+                                </TextBox.ToolTip>
+                            </TextBox>
+                            <TextBox
+                                Grid.Row="4"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.Hint="Username"
+                                Style="{StaticResource MaterialDesignOutlinedTextBox}">
+                                <TextBox.Text>
+                                    <Binding
+                                        ElementName="MainWindow"
+                                        Mode="TwoWay"
+                                        Path="DataContext.NewUsername"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </TextBox.Text>
+                            </TextBox>
+                            <PasswordBox
+                                x:Name="PasswordTextBox"
+                                Grid.Row="5"
+                                Grid.Column="1"
+                                Margin="5"
+                                VerticalAlignment="Center"
+                                materialDesign:HintAssist.FloatingScale="0.8"
+                                materialDesign:HintAssist.Hint="Password"
+                                materialDesign:TextFieldAssist.HasClearButton="True"
+                                Style="{StaticResource MaterialDesignOutlinedRevealPasswordBox}">
+                                <materialDesign:PasswordBoxAssist.Password>
+                                    <Binding
+                                        ElementName="MainWindow"
+                                        Path="DataContext.NewPassword"
+                                        UpdateSourceTrigger="PropertyChanged" />
+                                </materialDesign:PasswordBoxAssist.Password>
+                            </PasswordBox>
+                            <Grid
+                                Grid.Row="6"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    Grid.Column="0"
+                                    Width="90"
+                                    Height="30"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding ElementName=MainWindow, Path=DataContext.EditAccountCommand}"
+                                    Content="Edit"
+                                    FontSize="14" />
+                                <Button
+                                    Grid.Column="2"
+                                    Width="90"
+                                    Height="30"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding ElementName=MainWindow, Path=DataContext.CloseEditAccountDialogCommand}"
+                                    Content="Cancel"
+                                    FontSize="14" />
+                            </Grid>
+                        </Grid>
+                    </DataTemplate>
                 </ContentControl.Resources>
                 <ContentControl.Style>
                     <Style TargetType="ContentControl">
@@ -205,6 +393,9 @@
                             <DataTrigger Binding="{Binding CurrentDialog}" Value="ConfirmDeleteTemplate">
                                 <Setter Property="ContentTemplate" Value="{StaticResource ConfirmDeleteTemplate}" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentDialog}" Value="EditAccountTemplate">
+                                <Setter Property="ContentTemplate" Value="{StaticResource EditAccountTemplate}" />
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </ContentControl.Style>
@@ -214,7 +405,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="60" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="30" />
+                <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="20" />
@@ -380,8 +571,8 @@
                                                     Grid.Column="7"
                                                     Margin="5,0,5,0"
                                                     VerticalAlignment="Center"
-                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.CopyTextCommand}"
-                                                    CommandParameter="{Binding DecryptedPassword}"
+                                                    Command="{Binding ElementName=AccountsItemControl, Path=DataContext.EditAccountDialogCommand}"
+                                                    CommandParameter="{Binding .}"
                                                     Style="{StaticResource MaterialDesignIconForegroundButton}"
                                                     ToolTip="MaterialDesignIconForegroundButton">
                                                     <materialDesign:PackIcon Kind="PencilOutline" />
@@ -397,19 +588,37 @@
                                                 </Button>
                                             </Grid>
                                         </Expander>
-                                        <materialDesign:PackIcon
+                                        <Image
                                             Grid.Column="1"
-                                            Width="40"
-                                            Height="40"
+                                            Width="35"
+                                            Height="35"
+                                            Margin="5,0,0,0"
                                             HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Kind="Instagram" />
+                                            VerticalAlignment="Center">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Source" Value="{Binding Source, Converter={StaticResource UrlToFaviconConverter}}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding AccountSourceType}" Value="1">
+                                                            <Setter Property="Source" Value="{Binding ApplicationIcon, Converter={StaticResource ByteArrayToBitmapImageConverter}}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
                                         <TextBlock
                                             Grid.Column="2"
-                                            Margin="25,0,0,0"
-                                            VerticalAlignment="Center"
-                                            FontSize="20"
-                                            Text="{Binding Source}">
+                                            Margin="30,0,0,0"
+                                            VerticalAlignment="Center">
+                                            <Button
+                                                Height="50"
+                                                BorderBrush="Transparent"
+                                                Command="{Binding ElementName=AccountsItemControl, Path=DataContext.OpenHttpLinkCommand}"
+                                                CommandParameter="{Binding .}"
+                                                Foreground="WhiteSmoke"
+                                                Style="{StaticResource MaterialDesignPaperLightButton}">
+                                                <TextBlock FontSize="20" Text="{Binding Source, Converter={StaticResource UrlToDisplayNameConverter}}" />
+                                            </Button>
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Visibility" Value="Visible" />
@@ -431,24 +640,32 @@
             <StatusBar
                 Grid.Row="2"
                 Grid.ColumnSpan="3"
+                Height="Auto"
+                MaxHeight="90"
                 Background="#1e1e1e"
-                FontSize="15"
                 Foreground="{DynamicResource PrimaryHueMidBrush}">
                 <StatusBarItem>
-                    <StackPanel Orientation="Horizontal">
+                    <Grid Height="auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <materialDesign:PackIcon
-                            Width="15"
-                            Height="15"
-                            Margin="10,0,0,0"
+                            Grid.Column="0"
+                            Width="20"
+                            Height="20"
+                            HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Foreground="{Binding StatusBarColor}"
                             Kind="{Binding StatusBarIcon, UpdateSourceTrigger=PropertyChanged}"
                             Visibility="{Binding ElementName=StatusMessageTextBlock, Path=Visibility}" />
                         <TextBlock
                             x:Name="StatusMessageTextBlock"
-                            Margin="10,0,0,0"
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
                             Foreground="{Binding StatusBarColor, UpdateSourceTrigger=PropertyChanged}"
-                            Text="{Binding StatusBarText, UpdateSourceTrigger=PropertyChanged, FallbackValue=ThisisthestatusMessage}">
+                            Text="{Binding StatusBarText, UpdateSourceTrigger=PropertyChanged, FallbackValue=ThisisthestatusMessage}"
+                            TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style BasedOn="{StaticResource MaterialDesignTextBlock}" TargetType="TextBlock">
                                     <Setter Property="Visibility" Value="Visible" />
@@ -460,10 +677,9 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                    </StackPanel>
+                    </Grid>
                 </StatusBarItem>
             </StatusBar>
         </Grid>
-
     </materialDesign:DialogHost>
 </Window>

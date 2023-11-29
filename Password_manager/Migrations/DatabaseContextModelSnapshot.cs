@@ -33,6 +33,13 @@ namespace Password_manager.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("AccountSourceType")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("ApplicationIcon")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<string>("EncryptedPassword")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

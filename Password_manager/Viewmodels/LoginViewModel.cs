@@ -161,9 +161,11 @@ namespace Password_manager.Viewmodels
 
         private void OpenMainWindow(object param, MasterAccount user)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            Application.Current.Dispatcher.InvokeAsync (async () =>
             {
-                windowService.ShowWindow(new MainView(), new MainViewModel(user, Password));
+                var mainViewModel = new MainViewModel(user, Password);
+                await mainViewModel.InitializeAsync();
+                windowService.ShowWindow(new MainView(), mainViewModel);
                 var window = param as LoginView;
                 windowService.CloseWindow(window);
             });

@@ -5,24 +5,24 @@
 namespace Password_manager.Migrations
 {
     /// <inheritdoc />
-    public partial class AccountSaltAdded : Migration
+    public partial class AppIcon : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "AccountSalt",
+            migrationBuilder.AddColumn<byte[]>(
+                name: "ApplicationIcon",
                 table: "Accounts",
-                type: "nvarchar(max)",
+                type: "varbinary(max)",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: new byte[0]);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "AccountSalt",
+                name: "ApplicationIcon",
                 table: "Accounts");
         }
     }

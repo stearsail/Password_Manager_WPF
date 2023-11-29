@@ -5,7 +5,7 @@
 namespace Password_manager.Migrations
 {
     /// <inheritdoc />
-    public partial class INITIALMIGRATION : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,7 +34,9 @@ namespace Password_manager.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Username = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EncryptedPassword = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Website = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AccountSalt = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AccountSourceType = table.Column<int>(type: "int", nullable: false),
+                    Source = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     MasterAccountId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>

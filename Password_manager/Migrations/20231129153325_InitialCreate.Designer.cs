@@ -11,8 +11,8 @@ using Password_manager;
 namespace Password_manager.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20231117155440_AccountSaltAdded")]
-    partial class AccountSaltAdded
+    [Migration("20231129153325_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,6 +36,9 @@ namespace Password_manager.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("AccountSourceType")
+                        .HasColumnType("int");
+
                     b.Property<string>("EncryptedPassword")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -43,11 +46,11 @@ namespace Password_manager.Migrations
                     b.Property<int>("MasterAccountId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Username")
+                    b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Website")
+                    b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
