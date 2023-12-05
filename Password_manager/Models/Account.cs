@@ -23,6 +23,7 @@ namespace Password_manager.Models
         public MasterAccount MasterAccount { get; set; }
         [NotMapped]
         public string DecryptedPassword { get; set; }
-        public byte[] ApplicationIcon { get; set; }
+        public byte[]? ApplicationIcon { get; set; }
+        public string? ApplicationPath { get; set; }
     }
 }

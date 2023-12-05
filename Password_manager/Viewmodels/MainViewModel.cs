@@ -21,6 +21,8 @@ using System.IO;
 using System.Windows.Media.Imaging;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Diagnostics;
+using System.Windows.Data;
 
 namespace Password_manager.Viewmodels
 {
@@ -31,6 +33,7 @@ namespace Password_manager.Viewmodels
         private string newUsername;
         private string newPassword;
         private string newSource;
+        private string applicationPath;
         private BitmapImage newBitmapIcon;
         private byte[] newIcon;
         private Account.SourceType selectedSourceType;
@@ -54,12 +57,10 @@ namespace Password_manager.Viewmodels
         private ICommand deleteAccountCommand;
         private ICommand copyTextCommand;
         private ICommand signOutCommand;
-        private ICommand openHttpLinkCommand;
+        private ICommand openLinkCommand;
         private ICommand selectApplicationCommand;
 
         private WindowService windowService = new WindowService();
-
-
 
         public ICommand CopyTextCommand
         {
@@ -168,15 +169,15 @@ namespace Password_manager.Viewmodels
                 return deleteAccountDialogCommand;
             }
         }
-        public ICommand OpenHttpLinkCommand
+        public ICommand OpenLinkCommand
         {
             get
             {
-                if(openHttpLinkCommand == null)
+                if(openLinkCommand == null)
                 {
-                   openHttpLinkCommand = new RelayCommand(param => OpenHttpLink(param));
+                   openLinkCommand = new RelayCommand(param => OpenLink(param));
                 }
-                return openHttpLinkCommand;
+                return openLinkCommand;
             }
         }
 
@@ -221,6 +222,17 @@ namespace Password_manager.Viewmodels
                 OnPropertyChanged();
             }
         }
+
+        public string ApplicationPath
+        {
+            get => applicationPath;
+            set
+            {
+                applicationPath = value;
+                OnPropertyChanged();
+            }
+        }
+
 
         public BitmapImage NewBitmapIcon
         {
@@ -358,11 +370,18 @@ namespace Password_manager.Viewmodels
             }
         }
 
+        public Dictionary<string, ObservableCollection<Account>> Grouped { get; private set; }
+
         public MainViewModel(MasterAccount user, string masterPassword)
         {
             CurrentUser = user;
             MasterPassword = masterPassword;
             DecryptAllPasswords(MasterPassword);
+        }
+
+        private void GroupAccounts()
+        {
+            
         }
 
         public MainViewModel()
@@ -400,6 +419,7 @@ namespace Password_manager.Viewmodels
                 {
                     if(SelectedSourceType == Account.SourceType.Web)
                     {
+                        ApplicationPath = null;
                         NewIcon = null;
                     }
                     else
@@ -415,7 +435,8 @@ namespace Password_manager.Viewmodels
                         AccountSourceType = SelectedSourceType,
                         Source = NewSource,
                         MasterAccountId = CurrentUser.UserId,
-                        ApplicationIcon = NewIcon
+                        ApplicationIcon = NewIcon,
+                        ApplicationPath = ApplicationPath
                     };
                     dbContext.Accounts.Add(newUser);
                     dbContext.SaveChanges();
@@ -551,21 +572,30 @@ namespace Password_manager.Viewmodels
             NewUsername = "";
             NewPassword = "";
             NewSource = "";
+            NewIcon = null;
+            ApplicationPath = "";
         }
 
-        private void OpenHttpLink(object param)
+        private void OpenLink(object param)
         {
             if (param != null)
             {
                 CurrentAccount = param as Account;
                 try
                 {
-                    var psi = new System.Diagnostics.ProcessStartInfo
+                    if(CurrentAccount.AccountSourceType == 0)
                     {
-                        FileName = CurrentAccount.Source,
-                        UseShellExecute = true
-                    };
-                    System.Diagnostics.Process.Start(psi);
+                        var psi = new ProcessStartInfo
+                        {
+                            FileName = CurrentAccount.Source,
+                            UseShellExecute = true
+                        };
+                        Process.Start(psi);
+                    }
+                    else
+                    {
+                        Process.Start(CurrentAccount.ApplicationPath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -584,14 +614,14 @@ namespace Password_manager.Viewmodels
 
             if (openFileDialog.ShowDialog() == true)
             {
-                string selectedPath = openFileDialog.FileName;
-                string appName = Path.GetFileNameWithoutExtension(selectedPath);
+                ApplicationPath = openFileDialog.FileName;
+                string appName = Path.GetFileNameWithoutExtension(ApplicationPath);
 
                 // Store the application name in a property
                 NewSource = appName; // Assuming ApplicationName is a property in your ViewModel
 
                 // Extract and store the icon
-                Icon extractedIcon = Icon.ExtractAssociatedIcon(selectedPath);
+                Icon extractedIcon = Icon.ExtractAssociatedIcon(ApplicationPath);
                 if (extractedIcon != null)
                 {
                     using (MemoryStream iconStream = new MemoryStream())

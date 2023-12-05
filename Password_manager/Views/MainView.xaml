@@ -613,7 +613,7 @@
                                             <Button
                                                 Height="50"
                                                 BorderBrush="Transparent"
-                                                Command="{Binding ElementName=AccountsItemControl, Path=DataContext.OpenHttpLinkCommand}"
+                                                Command="{Binding ElementName=AccountsItemControl, Path=DataContext.OpenLinkCommand}"
                                                 CommandParameter="{Binding .}"
                                                 Foreground="WhiteSmoke"
                                                 Style="{StaticResource MaterialDesignPaperLightButton}">
