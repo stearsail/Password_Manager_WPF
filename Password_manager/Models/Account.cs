@@ -5,14 +5,14 @@ using System.Windows.Media.Imaging;
 
 namespace Password_manager.Models
 {
+    public enum SourceType
+    {
+        Web,
+        Application
+    }
+
     public class Account
     {
-        public enum SourceType
-        {
-            Web,
-            Application
-        }
-
         public int AccountId { get; set; }
         public string Username { get; set; }
         public string EncryptedPassword { get; set; }

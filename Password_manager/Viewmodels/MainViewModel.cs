@@ -23,6 +23,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.Windows.Data;
+using Microsoft.Identity.Client;
 
 namespace Password_manager.Viewmodels
 {
@@ -36,7 +37,7 @@ namespace Password_manager.Viewmodels
         private string applicationPath;
         private BitmapImage newBitmapIcon;
         private byte[] newIcon;
-        private Account.SourceType selectedSourceType;
+        private Models.SourceType selectedSourceType;
         private string currentDialog;
         private string deleteDialogText;
         private string statusBarText = "";
@@ -45,7 +46,7 @@ namespace Password_manager.Viewmodels
         private bool isDialogOpen;
 
         private MasterAccount currentUser;
-        private ObservableCollection<Account> accounts;
+        private ObservableCollection<AccountGroupInfo> groupedAccounts;
         private Account currentAccount;
 
         private ICommand addAccountDialogCommand;
@@ -92,7 +93,7 @@ namespace Password_manager.Viewmodels
             {
                 if(editAccountCommand == null)
                 {
-                    editAccountCommand = new RelayCommand(_ => EditAccount(), _=> AllFieldsCompleted());
+                    editAccountCommand = new RelayCommand(_ => EditAccount(), _=> AllEditFieldsCompleted());
                 }
                 return editAccountCommand;
             }
@@ -253,12 +254,13 @@ namespace Password_manager.Viewmodels
             }
         }
 
-        public Account.SourceType SelectedSourceType
+        public Models.SourceType SelectedSourceType
         {
             get => selectedSourceType;
             set
             {
                 selectedSourceType = value;
+                NewSource = string.Empty;
                 OnPropertyChanged(nameof(SourceType));
                 OnPropertyChanged(nameof(SelectedSourceType));
             }
@@ -266,7 +268,7 @@ namespace Password_manager.Viewmodels
 
         public string SourceType => SelectedSourceType.ToString();
 
-        public Array SourceTypes => Enum.GetValues(typeof(Account.SourceType));
+        public Array SourceTypes => Enum.GetValues(typeof(Models.SourceType));
 
         public string CurrentDialog
         {
@@ -360,28 +362,100 @@ namespace Password_manager.Viewmodels
             }
         }
 
-        public ObservableCollection<Account> Accounts
+
+        public ObservableCollection<AccountGroupInfo> GroupedAccounts
         {
-            get => accounts;
+            get => groupedAccounts;
             set
             {
-                accounts = value;
+                groupedAccounts = value;
                 OnPropertyChanged();
             }
         }
-
-        public Dictionary<string, ObservableCollection<Account>> Grouped { get; private set; }
 
         public MainViewModel(MasterAccount user, string masterPassword)
         {
             CurrentUser = user;
             MasterPassword = masterPassword;
             DecryptAllPasswords(MasterPassword);
+            GroupAccounts();
         }
 
         private void GroupAccounts()
         {
-            
+            if (GroupedAccounts != null)
+                GroupedAccounts.Clear();
+
+            var groupedData = CurrentUser.Accounts
+                .GroupBy(a => a.Source)
+                .OrderBy(g=>g.Key)
+                .Select(group => new AccountGroupInfo(group.Key, new ObservableCollection<Account>(group.OrderBy(account=>account.Username))));
+
+            GroupedAccounts = new ObservableCollection<AccountGroupInfo>(groupedData);
+        }
+
+        private int FindInsertionIndex(string source)
+        {
+            for (int i = 0; i < GroupedAccounts.Count; i++)
+            {
+                if (String.Compare(GroupedAccounts[i].Source, source, StringComparison.Ordinal) > 0)
+                {
+                    return i;
+                }
+            }
+            return GroupedAccounts.Count;
+        }
+
+        private void AddAccountToGroup(Account newAccount)
+        {
+            var group = GroupedAccounts.FirstOrDefault(a => a.Source == newAccount.Source);
+            if (group != null)
+            {
+                group.Accounts.Add(newAccount);
+                group.SelectedAccount = newAccount;
+            }
+            else
+            {
+                var newGroup = new AccountGroupInfo(newAccount.Source, new ObservableCollection<Account> { newAccount });
+                int index = FindInsertionIndex(newAccount.Source);
+                GroupedAccounts.Insert(index, newGroup);
+            }
+        }
+
+        private void UpdateAccountInGroup(Account updatedAccount)
+        {
+            foreach(var group in GroupedAccounts)
+            {
+                var account = group.Accounts.FirstOrDefault(a=> a.AccountId == updatedAccount.AccountId);
+                if (account != null)
+                {
+                    account.Username = updatedAccount.Username;
+                    account.EncryptedPassword = EncryptionService.Encrypt(NewPassword, MasterPassword, CurrentAccount.AccountSalt);
+                    account.DecryptedPassword = EncryptionService.Decrypt(account.EncryptedPassword, MasterPassword, CurrentAccount.AccountSalt);
+                    group.Accounts.Remove(account);
+                    group.Accounts.Add(account);
+                    group.SelectedAccount = account;
+                    break;
+                }
+            }
+        }
+
+        private void DeleteAccountFromGroup(int accountId)
+        {
+            foreach(var group in GroupedAccounts)
+            {
+                var account = group.Accounts.FirstOrDefault(a=>a.AccountId == accountId);
+                if (account != null)
+                {
+                    group.Accounts.Remove(account);
+                    if (!group.Accounts.Any())
+                    {
+                        GroupedAccounts.Remove(group);
+                    }
+                    group.SelectedAccount = group.Accounts.FirstOrDefault();
+                    break;
+                }
+            }
         }
 
         public MainViewModel()
@@ -417,7 +491,7 @@ namespace Password_manager.Viewmodels
                 
                 using (DatabaseContext dbContext = new DatabaseContext())
                 {
-                    if(SelectedSourceType == Account.SourceType.Web)
+                    if(SelectedSourceType == Models.SourceType.Web)
                     {
                         ApplicationPath = null;
                         NewIcon = null;
@@ -444,7 +518,9 @@ namespace Password_manager.Viewmodels
                     //Adding to ObservableCollection<Account> Accounts for UI to reflect changes
                     newUser.DecryptedPassword = EncryptionService.Decrypt(newUser.EncryptedPassword, MasterPassword, newUser.AccountSalt);
                     CurrentUser.Accounts.Add(newUser);
+                    AddAccountToGroup(newUser);
                     CurrentAccount = newUser;
+
                 }
                 ResetProperties();
                 IsDialogOpen = false;
@@ -462,8 +538,6 @@ namespace Password_manager.Viewmodels
             CurrentAccount = param as Account;
             NewUsername = CurrentAccount.Username;
             NewPassword = CurrentAccount.DecryptedPassword;
-            SelectedSourceType = CurrentAccount.AccountSourceType;
-            NewSource = CurrentAccount.Source;
             CurrentDialog = "EditAccountTemplate";
             IsDialogOpen = true;
         }
@@ -485,15 +559,13 @@ namespace Password_manager.Viewmodels
                     {
                         CurrentUser.Accounts.Remove(CurrentAccount);
                         accountToEdit.Username = NewUsername.ToLower();
-                        accountToEdit.Source = NewSource;
-                        accountToEdit.AccountSourceType = SelectedSourceType;
                         accountToEdit.EncryptedPassword = EncryptionService.Encrypt(NewPassword, MasterPassword, CurrentAccount.AccountSalt);
                         accountToEdit.DecryptedPassword = EncryptionService.Decrypt(accountToEdit.EncryptedPassword, MasterPassword, CurrentAccount.AccountSalt);
                         CurrentUser.Accounts.Add(accountToEdit);
                     }
-
                     dbcontext.Accounts.Update(accountToEdit);
                     await dbcontext.SaveChangesAsync();
+                    UpdateAccountInGroup(accountToEdit);
                     IsDialogOpen = false;
                     ResetProperties();
                     SetStatusText(false, $"Succesfully edited account \"{accountToEdit.Username}\" from {accountToEdit.Source}.");
@@ -507,7 +579,8 @@ namespace Password_manager.Viewmodels
 
         private void DeleteAccount()
         {
-            if( CurrentAccount != null)
+            IsDialogOpen = false;
+            if ( CurrentAccount != null)
             {
                 using(var databaseContext = new DatabaseContext())
                 {
@@ -515,9 +588,9 @@ namespace Password_manager.Viewmodels
                     databaseContext.SaveChanges();
                 }
                 CurrentUser.Accounts.Remove(CurrentAccount);
+                DeleteAccountFromGroup(CurrentAccount.AccountId);
             }
             DialogHost.CloseDialogCommand.Execute(null, null);
-            IsDialogOpen = false;
             SetStatusText(false, $"Succesfully deleted account \"{CurrentAccount.Username}\" from {CurrentAccount.Source}.");
         }
 
@@ -539,6 +612,12 @@ namespace Password_manager.Viewmodels
         private bool AllFieldsCompleted()
         {
             return !string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(NewSource);
+        }
+
+        private bool AllEditFieldsCompleted()
+        {
+            return (NewUsername != CurrentAccount.Username || NewPassword != CurrentAccount.DecryptedPassword) 
+                && (!string.IsNullOrEmpty(NewUsername) && !string.IsNullOrEmpty(NewPassword));
         }
 
         private void CopyText(object param)
