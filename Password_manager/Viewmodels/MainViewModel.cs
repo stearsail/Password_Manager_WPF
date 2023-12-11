@@ -24,6 +24,7 @@ using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.Windows.Data;
 using Microsoft.Identity.Client;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Password_manager.Viewmodels
 {
@@ -41,6 +42,7 @@ namespace Password_manager.Viewmodels
         private string currentDialog;
         private string deleteDialogText;
         private string statusBarText = "";
+        private string searchText;
         private SolidColorBrush statusBarColor;
         private PackIconKind statusBarIcon;
         private bool isDialogOpen;
@@ -296,6 +298,17 @@ namespace Password_manager.Viewmodels
             set
             {
                 statusBarText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SearchText
+        {
+            get => searchText;
+            set
+            {
+                searchText = value;
+                FilterSources();
                 OnPropertyChanged();
             }
         }
@@ -562,10 +575,10 @@ namespace Password_manager.Viewmodels
                         accountToEdit.EncryptedPassword = EncryptionService.Encrypt(NewPassword, MasterPassword, CurrentAccount.AccountSalt);
                         accountToEdit.DecryptedPassword = EncryptionService.Decrypt(accountToEdit.EncryptedPassword, MasterPassword, CurrentAccount.AccountSalt);
                         CurrentUser.Accounts.Add(accountToEdit);
+                        dbcontext.Accounts.Update(accountToEdit);
+                        await dbcontext.SaveChangesAsync();
+                        UpdateAccountInGroup(accountToEdit);
                     }
-                    dbcontext.Accounts.Update(accountToEdit);
-                    await dbcontext.SaveChangesAsync();
-                    UpdateAccountInGroup(accountToEdit);
                     IsDialogOpen = false;
                     ResetProperties();
                     SetStatusText(false, $"Succesfully edited account \"{accountToEdit.Username}\" from {accountToEdit.Source}.");
@@ -580,18 +593,22 @@ namespace Password_manager.Viewmodels
         private void DeleteAccount()
         {
             IsDialogOpen = false;
-            if ( CurrentAccount != null)
+            if (CurrentAccount != null)
             {
-                using(var databaseContext = new DatabaseContext())
+                using (var databaseContext = new DatabaseContext())
                 {
-                    databaseContext.Accounts.Remove(CurrentAccount);
-                    databaseContext.SaveChanges();
+                    var accountToDelete = databaseContext.Accounts.Find(CurrentAccount.AccountId);
+                    if (accountToDelete != null)
+                    {
+                        databaseContext.Accounts.Remove(accountToDelete);
+                        databaseContext.SaveChanges();
+                        CurrentUser.Accounts.Remove(accountToDelete);
+                        DeleteAccountFromGroup(accountToDelete.AccountId);
+                    }
                 }
-                CurrentUser.Accounts.Remove(CurrentAccount);
-                DeleteAccountFromGroup(CurrentAccount.AccountId);
+                DialogHost.CloseDialogCommand.Execute(null, null);
+                SetStatusText(false, $"Successfully deleted account \"{CurrentAccount.Username}\" from {CurrentAccount.Source}.");
             }
-            DialogHost.CloseDialogCommand.Execute(null, null);
-            SetStatusText(false, $"Succesfully deleted account \"{CurrentAccount.Username}\" from {CurrentAccount.Source}.");
         }
 
         private void DeleteAccountDialog(object param)
@@ -648,6 +665,7 @@ namespace Password_manager.Viewmodels
 
         public void ResetProperties()
         {
+            SearchText = "";
             NewUsername = "";
             NewPassword = "";
             NewSource = "";
@@ -717,6 +735,25 @@ namespace Password_manager.Viewmodels
                         NewBitmapIcon = bitmapImage; // Assuming ApplicationIcon is a property of type BitmapImage
                     }
                 }
+            }
+        }
+
+        private void FilterSources()
+        {
+            if (String.IsNullOrEmpty(SearchText))
+            {
+                GroupAccounts();
+                return;
+            }
+            else
+            {
+                GroupAccounts();
+                List<AccountGroupInfo> groupsToRemove = new List<AccountGroupInfo>();
+                foreach(var group in GroupedAccounts)
+                    if (!group.Source.Contains(SearchText))
+                        groupsToRemove.Add(group);
+                foreach (var group in groupsToRemove)
+                    GroupedAccounts.Remove(group);
             }
         }
 
